@@ -1,6 +1,6 @@
 # BingeFriend TVMaze Client
 
-Python client using the [TV Maze API](https://www.tvmaze.com/api) to fetch show, season, and episode data.
+Python client using the [TV Maze API](https://www.tvmaze.com/api) to fetch show, season, episode, network, and webchannel data.
 
 ## Usage
 
@@ -31,6 +31,16 @@ if seasons:
 episodes = client.get_episodes(1)
 if episodes:
     print(f"Episodes: {len(episodes)}")
+
+# Fetch network details for a specific network ID
+network = client.get_network(1)
+if network:
+    print(f"Network Name: {network.get('name')}")
+
+# Fetch webchannel details for a specific webchannel ID
+webchannel = client.get_webchannel(1)
+if webchannel:
+    print(f"Webchannel Name: {webchannel.get('name')}")
 
 # Fetch show updates for a period of time
 updates = client.get_show_updates(period='day')
