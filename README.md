@@ -33,6 +33,10 @@ if updates:
     print(f"Show Updates: {len(updates)}")
 ```
 
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
 ## Attribution
 
 Data provided by [TVmaze.com](https://www.tvmaze.com/).
