@@ -40,6 +40,7 @@ class TVMazeAPI:
 
         self.session = requests.Session()
         self.session.mount("https://", adapter)
+        # noinspection HttpUrlsUsage
         self.session.mount("http://", adapter)  # Keep http mount
 
         # Use self.logger now
@@ -123,6 +124,28 @@ class TVMazeAPI:
         if result is not None and not isinstance(result, list):
             # Use self.logger
             self.logger.error(f"Unexpected non-list response for /shows/{show_id}/episodes: {type(result)}")
+            return None
+        return result
+
+    def get_network(self, network_id: int) -> dict[str, Any] | None:
+        """Fetches network details for a specific network ID."""
+        # Use self.logger
+        self.logger.info(f"Fetching network details for ID {network_id}.")
+        result = self._make_request(f'/networks/{network_id}')
+        if result is not None and not isinstance(result, dict):
+            # Use self.logger
+            self.logger.error(f"Unexpected non-dict response for /networks/{network_id}: {type(result)}")
+            return None
+        return result
+
+    def get_webchannel(self, webchannel_id: int) -> dict[str, Any] | None:
+        """Fetches webchannel details for a specific webchannel ID."""
+        # Use self.logger
+        self.logger.info(f"Fetching webchannel details for ID {webchannel_id}.")
+        result = self._make_request(f'/webchannels/{webchannel_id}')
+        if result is not None and not isinstance(result, dict):
+            # Use self.logger
+            self.logger.error(f"Unexpected non-dict response for /webchannels/{webchannel_id}: {type(result)}")
             return None
         return result
 

@@ -276,6 +276,62 @@ class TestTVMazeAPI(unittest.TestCase):
             "Unexpected non-list response for /shows/103/episodes: <class 'dict'>"
         )
 
+    @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
+    def test_get_network_success(self, mock_make_request):
+        expected_network = {'id': 1, 'name': 'NBC'}
+        mock_make_request.return_value = expected_network
+        result = self.api.get_network(network_id=1)
+        self.assertEqual(result, expected_network)
+        mock_make_request.assert_called_once_with('/networks/1')
+        self.mock_logger.info.assert_any_call("Fetching network details for ID 1.")
+
+    @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
+    def test_get_network_none_response(self, mock_make_request):
+        mock_make_request.return_value = None
+        result = self.api.get_network(network_id=2)
+        self.assertIsNone(result)
+        mock_make_request.assert_called_once_with('/networks/2')
+        self.mock_logger.info.assert_any_call("Fetching network details for ID 2.")
+
+    @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
+    def test_get_network_invalid_type(self, mock_make_request):
+        mock_make_request.return_value = ["list"]
+        result = self.api.get_network(network_id=3)
+        self.assertIsNone(result)
+        mock_make_request.assert_called_once_with('/networks/3')
+        self.mock_logger.info.assert_any_call("Fetching network details for ID 3.")
+        self.mock_logger.error.assert_called_once_with(
+            "Unexpected non-dict response for /networks/3: <class 'list'>"
+        )
+
+    @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
+    def test_get_webchannel_success(self, mock_make_request):
+        expected_webchannel = {'id': 1, 'name': 'Netflix'}
+        mock_make_request.return_value = expected_webchannel
+        result = self.api.get_webchannel(webchannel_id=1)
+        self.assertEqual(result, expected_webchannel)
+        mock_make_request.assert_called_once_with('/webchannels/1')
+        self.mock_logger.info.assert_any_call("Fetching webchannel details for ID 1.")
+
+    @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
+    def test_get_webchannel_none_response(self, mock_make_request):
+        mock_make_request.return_value = None
+        result = self.api.get_webchannel(webchannel_id=2)
+        self.assertIsNone(result)
+        mock_make_request.assert_called_once_with('/webchannels/2')
+        self.mock_logger.info.assert_any_call("Fetching webchannel details for ID 2.")
+
+    @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
+    def test_get_webchannel_invalid_type(self, mock_make_request):
+        mock_make_request.return_value = ["list"]
+        result = self.api.get_webchannel(webchannel_id=3)
+        self.assertIsNone(result)
+        mock_make_request.assert_called_once_with('/webchannels/3')
+        self.mock_logger.info.assert_any_call("Fetching webchannel details for ID 3.")
+        self.mock_logger.error.assert_called_once_with(
+            "Unexpected non-dict response for /webchannels/3: <class 'list'>"
+        )
+
     # --- Special cases for multiple logs ---
 
     @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
