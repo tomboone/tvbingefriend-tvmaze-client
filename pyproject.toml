@@ -1,0 +1,31 @@
+[project]
+name = "bingefriend-shows-client_tvmaze"
+version = "0.1.6"
+description = "A Python client for the TV Maze API"
+authors = [
+    { name = "Tom Boone", email = "tbc@tomboone.com" }
+]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "requests >= 2.32.3"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest >= 8.0.0",
+    "coverage >= 7.0.0",
+    "requests-mock >= 1.11.0",
+    "flake8 >= 7.0.0",
+    "black >= 24.0.0"
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
