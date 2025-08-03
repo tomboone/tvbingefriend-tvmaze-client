@@ -1,6 +1,6 @@
 # BingeFriend TVMaze Client
 
-Python client using the [TV Maze API](https://www.tvmaze.com/api) to fetching show, season, and episode data.
+Python client using the [TV Maze API](https://www.tvmaze.com/api) to fetch show, season, and episode data.
 
 ## Usage
 
