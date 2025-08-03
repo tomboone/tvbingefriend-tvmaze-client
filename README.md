@@ -12,6 +12,11 @@ from tvbingefriend_tvmaze_client.tvmaze_api import TVMazeAPI
 # Initialize the client
 client = TVMazeAPI()
 
+# Fetch a page of shows (page integer starts from 0, e.g., page=0)
+shows = client.get_shows(page=0)
+if shows:
+    print(f"Shows on page 0: {len(shows)}")
+
 # Fetch details for a specific show (e.g., "Under the Dome", ID: 1)
 show_details = client.get_show_details(1)
 if show_details:
