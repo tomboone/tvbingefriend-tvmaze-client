@@ -94,13 +94,26 @@ class TVMazeAPI:
             return None
         return result
 
-    def get_show_details(self, show_id: int) -> Optional[Dict[str, Any]]:
-        """Fetches full details for a specific show."""
-        # Use self.logger
-        self.logger.info(f"Fetching details for show ID {show_id}.")
-        result = self._make_request(f'/shows/{show_id}')
+    def get_show_details(self, show_id: int, embed: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+        """
+        Fetches full details for a specific show, optionally embedding related data.
+
+        Args:
+            show_id: The ID of the show to fetch.
+            embed: A list of related data to embed, e.g., ['seasons', 'episodes'].
+
+        Returns:
+            A dictionary containing the show details, or None if not found.
+        """
+        self.logger.info(f"Fetching details for show ID {show_id} with embeds: {embed}.")
+
+        params = {}
+        if embed:
+            params['embed'] = embed
+
+        result = self._make_request(f'/shows/{show_id}', params=params)
+
         if result is not None and not isinstance(result, dict):
-            # Use self.logger
             self.logger.error(f"Unexpected non-dict response for /shows/{show_id}: {type(result)}")
             return None
         return result
