@@ -1,6 +1,6 @@
 [project]
 name = "tvbingefriend-tvmaze-client"
-version = "0.1.2"
+version = "0.1.3"
 description = "A Python client for the TV Maze API"
 authors = [
     { name = "Tom Boone", email = "tbc@tomboone.com" }
