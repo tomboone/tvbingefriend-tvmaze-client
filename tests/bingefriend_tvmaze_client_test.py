@@ -191,27 +191,38 @@ class TestTVMazeAPI(unittest.TestCase):
         mock_make_request.return_value = expected_details
         result = self.api.get_show_details(show_id=101)
         self.assertEqual(result, expected_details)
-        mock_make_request.assert_called_once_with('/shows/101')
+        mock_make_request.assert_called_once_with('/shows/101', params={})
         # Use assert_any_call for info
-        self.mock_logger.info.assert_any_call("Fetching details for show ID 101.")
+        self.mock_logger.info.assert_any_call("Fetching details for show ID 101 with embeds: None.")
+
+    @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
+    def test_get_show_details_with_embed(self, mock_make_request):
+        """Test get_show_details with the embed parameter."""
+        expected_details = {'id': 101, '_embedded': {'seasons': [], 'episodes': []}}
+        mock_make_request.return_value = expected_details
+        embed_options = ['seasons', 'episodes']
+        result = self.api.get_show_details(show_id=101, embed=embed_options)
+        self.assertEqual(result, expected_details)
+        mock_make_request.assert_called_once_with('/shows/101', params={'embed': embed_options})
+        self.mock_logger.info.assert_any_call(f"Fetching details for show ID 101 with embeds: {embed_options}.")
 
     @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
     def test_get_show_details_none_response(self, mock_make_request):
         mock_make_request.return_value = None
         result = self.api.get_show_details(show_id=102)
         self.assertIsNone(result)
-        mock_make_request.assert_called_once_with('/shows/102')
+        mock_make_request.assert_called_once_with('/shows/102', params={})
         # Use assert_any_call for info
-        self.mock_logger.info.assert_any_call("Fetching details for show ID 102.")
+        self.mock_logger.info.assert_any_call("Fetching details for show ID 102 with embeds: None.")
 
     @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
     def test_get_show_details_invalid_type(self, mock_make_request):
         mock_make_request.return_value = ["list"]
         result = self.api.get_show_details(show_id=103)
         self.assertIsNone(result)
-        mock_make_request.assert_called_once_with('/shows/103')
+        mock_make_request.assert_called_once_with('/shows/103', params={})
         # Use assert_any_call for info
-        self.mock_logger.info.assert_any_call("Fetching details for show ID 103.")
+        self.mock_logger.info.assert_any_call("Fetching details for show ID 103 with embeds: None.")
         self.mock_logger.error.assert_called_once_with(
             "Unexpected non-dict response for /shows/103: <class 'list'>"
         )
