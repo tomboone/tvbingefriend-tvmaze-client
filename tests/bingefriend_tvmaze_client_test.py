@@ -203,7 +203,7 @@ class TestTVMazeAPI(unittest.TestCase):
         embed_options = ['seasons', 'episodes']
         result = self.api.get_show_details(show_id=101, embed=embed_options)
         self.assertEqual(result, expected_details)
-        mock_make_request.assert_called_once_with('/shows/101', params={'embed': embed_options})
+        mock_make_request.assert_called_once_with('/shows/101', params={'embed[]': embed_options})
         self.mock_logger.info.assert_any_call(f"Fetching details for show ID 101 with embeds: {embed_options}.")
 
     @patch(f'{TVMAZE_API_MODULE_PATH}.TVMazeAPI._make_request')
