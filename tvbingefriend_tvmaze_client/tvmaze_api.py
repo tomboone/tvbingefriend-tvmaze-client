@@ -109,7 +109,7 @@ class TVMazeAPI:
 
         params = {}
         if embed:
-            params['embed'] = embed
+            params['embed[]'] = embed
 
         result = self._make_request(f'/shows/{show_id}', params=params)
 
