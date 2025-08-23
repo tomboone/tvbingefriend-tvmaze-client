@@ -2,13 +2,21 @@
 
 import time
 from datetime import datetime, timedelta, UTC
-from typing import Optional, Callable, Any, Type
+from typing import Optional, Callable, Any, Type, TypedDict, cast
 from functools import wraps
 from collections import defaultdict
 from logging import Logger, getLogger
 import requests
 
 
+class BackoffState(TypedDict):
+    """State of a backoff attempt."""
+    consecutive_failures: int
+    last_failure_time: Optional[datetime]
+    backoff_until: Optional[datetime]
+
+
+# noinspection PyMethodMayBeStatic
 class TVMazeRetryHandler:
     """Enhanced retry handler specifically for TVMaze API with exponential backoff.
     
@@ -36,11 +44,11 @@ class TVMazeRetryHandler:
         self.logger = logger or getLogger(__name__)
         
         # Track backoff state for different operation types
-        self.backoff_state = defaultdict(lambda: {
+        self.backoff_state: defaultdict[str, BackoffState] = defaultdict(lambda: cast(BackoffState, {
             'consecutive_failures': 0,
             'last_failure_time': None,
             'backoff_until': None
-        })
+        }))
     
     def is_rate_limit_error(self, exception: Exception) -> bool:
         """Check if an exception indicates TVMaze API rate limiting.
@@ -158,8 +166,9 @@ class TVMazeRetryHandler:
             operation_id: Identifier for the operation type
         """
         backoff_state = self.backoff_state[operation_id]
-        if backoff_state['backoff_until'] and datetime.now(UTC) < backoff_state['backoff_until']:
-            wait_time = (backoff_state['backoff_until'] - datetime.now(UTC)).total_seconds()
+        backoff_until = backoff_state['backoff_until']
+        if backoff_until and isinstance(backoff_until, datetime) and datetime.now(UTC) < backoff_until:
+            wait_time = (backoff_until - datetime.now(UTC)).total_seconds()
             if wait_time > 0:
                 self.logger.info(f"In backoff period for {operation_id}. Waiting {wait_time:.1f} seconds.")
                 time.sleep(wait_time)
@@ -179,8 +188,10 @@ class TVMazeRetryHandler:
             Decorated function with retry logic
         """
         def decorator(func: Callable) -> Callable:
+            """Decorator for adding retry logic to TVMaze API calls."""
             @wraps(func)
             def wrapper(*args, **kwargs) -> Any:
+                """Wrapper function."""
                 attempts = max_attempts or self.max_attempts
                 last_exception = None
                 
@@ -237,19 +248,20 @@ class TVMazeRetryHandler:
         backoff_state = self.backoff_state[operation_id]
         now = datetime.now(UTC)
         
+        backoff_until = backoff_state['backoff_until']
+        last_failure_time = backoff_state['last_failure_time']
+        
         return {
             'operation_id': operation_id,
             'consecutive_failures': backoff_state['consecutive_failures'],
             'in_backoff_period': (
-                backoff_state['backoff_until'] and now < backoff_state['backoff_until']
+                backoff_until and isinstance(backoff_until, datetime) and now < backoff_until
             ),
             'backoff_until': (
-                backoff_state['backoff_until'].isoformat() 
-                if backoff_state['backoff_until'] else None
+                backoff_until.isoformat() if isinstance(backoff_until, datetime) else None
             ),
             'last_failure_time': (
-                backoff_state['last_failure_time'].isoformat() 
-                if backoff_state['last_failure_time'] else None
+                last_failure_time.isoformat() if isinstance(last_failure_time, datetime) else None
             ),
             'max_attempts': self.max_attempts,
             'current_time': now.isoformat()
