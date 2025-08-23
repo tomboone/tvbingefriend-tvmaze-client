@@ -160,8 +160,9 @@ class TVMazeRetryHandler:
         backoff_state = self.backoff_state[operation_id]
         if backoff_state['backoff_until'] and datetime.now(UTC) < backoff_state['backoff_until']:
             wait_time = (backoff_state['backoff_until'] - datetime.now(UTC)).total_seconds()
-            self.logger.info(f"In backoff period for {operation_id}. Waiting {wait_time:.1f} seconds.")
-            time.sleep(wait_time)
+            if wait_time > 0:
+                self.logger.info(f"In backoff period for {operation_id}. Waiting {wait_time:.1f} seconds.")
+                time.sleep(wait_time)
     
     def with_retry(self, 
                    operation_id: str = "tvmaze_api", 
