@@ -5,7 +5,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 from typing import Dict, List, Any, Optional
-from tvbingefriend_tvmaze_client import config
+from . import config
 # Import Logger type for hinting
 from logging import Logger
 
@@ -18,6 +18,7 @@ class TVMazeAPI:
     # Add logger parameter with type hint
     def __init__(self, logger: Optional[Logger] = None):
         """Initializes the API client with session and enhanced retry/pool adapter."""
+        from . import TVMazeReliabilityManager
 
         # Use provided logger or get default for this module
         # Using __name__ is standard practice for library code
@@ -25,30 +26,11 @@ class TVMazeAPI:
 
         self.base_url: str = config.TVMAZE_API_BASE_URL.rstrip('/')
 
-        retry_strategy = Retry(
-            total=config.MAX_API_RETRIES,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["HEAD", "GET", "OPTIONS"],
-            backoff_factor=config.API_RETRY_BACKOFF_FACTOR,
-        )
-
-        adapter = HTTPAdapter(
-            pool_connections=100,
-            pool_maxsize=100,
-            max_retries=retry_strategy
-        )
-
-        self.session = requests.Session()
-        self.session.mount("https://", adapter)
-        # noinspection HttpUrlsUsage
-        self.session.mount("http://", adapter)  # Keep http mount
+        self.reliability_manager = TVMazeReliabilityManager(logger=self.logger)
 
         # Use self.logger now
         self.logger.info(
-            f"TVMazeAPI initialized: base_url={self.base_url}, "
-            f"retries={config.MAX_API_RETRIES}, "
-            f"backoff={config.API_RETRY_BACKOFF_FACTOR}, "
-            f"pool_maxsize=100"
+            f"TVMazeAPI initialized: base_url={self.base_url}"
         )
 
     def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optional[Any]:
@@ -57,8 +39,10 @@ class TVMazeAPI:
         req_params = params or {}
         # Use self.logger
         self.logger.debug(f"Making API request: GET {url} with params {req_params}")
-        try:
-            response = self.session.get(url, params=req_params, timeout=30)
+        
+        @self.reliability_manager.reliable_api_call()
+        def _request():
+            response = requests.get(url, params=req_params, timeout=30)
 
             if response.status_code == 404:
                 log_message = f"API returned 404 Not Found for {url} (Params: {req_params})."
@@ -77,7 +61,9 @@ class TVMazeAPI:
                 self.logger.error(
                     f"Failed to decode JSON from {url}: {json_err}. Response text: {response.text[:200]}...")
                 raise ValueError("Invalid JSON response from API") from json_err
-
+        
+        try:
+            return _request()
         except requests.exceptions.RequestException as req_err:
             # Use self.logger
             self.logger.error(f"API request failed permanently for {url} after retries: {req_err}")
