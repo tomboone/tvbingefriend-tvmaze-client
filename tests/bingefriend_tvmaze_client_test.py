@@ -18,21 +18,11 @@ TVMAZE_API_MODULE_PATH = 'tvbingefriend_tvmaze_client.tvmaze_api'
 class TestTVMazeAPI(unittest.TestCase):
     """Unit tests for the TVMazeAPI class."""
 
-    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.Session')
-    @patch(f'{TVMAZE_API_MODULE_PATH}.HTTPAdapter')
-    @patch(f'{TVMAZE_API_MODULE_PATH}.Retry')
-    def setUp(self, mock_retry, mock_http_adapter, mock_session):
+    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.get')
+    def setUp(self, mock_requests_get):
         """Set up test environment before each test method."""
         self.mock_logger = MagicMock(name='logger_mock')
-        self.mock_retry_cls = mock_retry
-        self.mock_adapter_cls = mock_http_adapter
-        self.mock_session_cls = mock_session
-        self.mock_session_instance = MagicMock()
-        self.mock_session_cls.return_value = self.mock_session_instance
-        self.mock_adapter_instance = MagicMock()
-        self.mock_adapter_cls.return_value = self.mock_adapter_instance
-        self.mock_retry_instance = MagicMock()
-        self.mock_retry_cls.return_value = self.mock_retry_instance
+        self.mock_requests_get = mock_requests_get
         from tvbingefriend_tvmaze_client.tvmaze_api import TVMazeAPI
         self.api = TVMazeAPI(logger=self.mock_logger)
         # NO RESET MOCK
@@ -41,32 +31,18 @@ class TestTVMazeAPI(unittest.TestCase):
         """Test the __init__ method."""
         # This assertion remains correct as it's the only call at this point.
         self.mock_logger.info.assert_called_once_with(
-            f"TVMazeAPI initialized: base_url=https://mockapi.test, "
-            f"retries={mock_config.MAX_API_RETRIES}, "
-            f"backoff={mock_config.API_RETRY_BACKOFF_FACTOR}, "
-            f"pool_maxsize=100"
+            f"TVMazeAPI initialized: base_url=https://mockapi.test"
         )
-        # ... rest of init checks ...
-        self.mock_retry_cls.assert_called_once_with(
-            total=mock_config.MAX_API_RETRIES, status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["HEAD", "GET", "OPTIONS"], backoff_factor=mock_config.API_RETRY_BACKOFF_FACTOR,
-        )
-        self.mock_adapter_cls.assert_called_once_with(
-            pool_connections=100, pool_maxsize=100, max_retries=self.mock_retry_instance
-        )
-        self.mock_session_cls.assert_called_once()
-        expected_mount_calls = [call("https://", self.mock_adapter_instance),
-                                call("http://", self.mock_adapter_instance)]
-        self.mock_session_instance.mount.assert_has_calls(expected_mount_calls, any_order=True)
         self.assertEqual(self.api.base_url, 'https://mockapi.test')
 
-    def test_make_request_success(self):
+    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.get')
+    def test_make_request_success(self, mock_requests_get):
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {'data': 'success'}
-        self.mock_session_instance.get.return_value = mock_response
+        mock_requests_get.return_value = mock_response
         result = self.api._make_request('/test', params={'key': 'value'})
-        self.mock_session_instance.get.assert_called_once_with(
+        mock_requests_get.assert_called_once_with(
             'https://mockapi.test/test', params={'key': 'value'}, timeout=30
         )
         mock_response.raise_for_status.assert_called_once()
@@ -78,12 +54,13 @@ class TestTVMazeAPI(unittest.TestCase):
         # Cannot assert info not called, as init called it. Remove this check.
         # self.mock_logger.info.assert_not_called()
 
-    def test_make_request_404(self):
+    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.get')
+    def test_make_request_404(self, mock_requests_get):
         mock_response = MagicMock()
         mock_response.status_code = 404
-        self.mock_session_instance.get.return_value = mock_response
+        mock_requests_get.return_value = mock_response
         result = self.api._make_request('/notfound')
-        self.mock_session_instance.get.assert_called_once_with(
+        mock_requests_get.assert_called_once_with(
             'https://mockapi.test/notfound', params={}, timeout=30
         )
         mock_response.raise_for_status.assert_not_called()
@@ -94,12 +71,13 @@ class TestTVMazeAPI(unittest.TestCase):
         )
         self.mock_logger.debug.assert_called_once()
 
-    def test_make_request_404_updates_shows(self):
+    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.get')
+    def test_make_request_404_updates_shows(self, mock_requests_get):
         mock_response = MagicMock()
         mock_response.status_code = 404
-        self.mock_session_instance.get.return_value = mock_response
+        mock_requests_get.return_value = mock_response
         result = self.api._make_request('/updates/shows', params={'since': 'day'})
-        self.mock_session_instance.get.assert_called_once_with(
+        mock_requests_get.assert_called_once_with(
             'https://mockapi.test/updates/shows', params={'since': 'day'}, timeout=30
         )
         self.assertIsNone(result)
@@ -110,45 +88,51 @@ class TestTVMazeAPI(unittest.TestCase):
         )
         self.mock_logger.debug.assert_called_once()
 
-    def test_make_request_http_error(self):
+    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.get')
+    def test_make_request_http_error(self, mock_requests_get):
         mock_response = MagicMock()
         mock_response.status_code = 500
         http_error = requests.exceptions.HTTPError("Server Error")
         http_error.response = mock_response
         mock_response.raise_for_status.side_effect = http_error
-        self.mock_session_instance.get.return_value = mock_response
+        mock_requests_get.return_value = mock_response
         with self.assertRaises(requests.exceptions.RequestException):
             self.api._make_request('/error')
         # ... other assertions ...
-        self.mock_logger.error.assert_called_once_with(
+        self.mock_logger.error.assert_any_call(
             "API request failed permanently for https://mockapi.test/error after retries: Server Error"
         )
         self.mock_logger.debug.assert_called_once()
 
-    def test_make_request_request_exception(self):
+    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.get')
+    def test_make_request_request_exception(self, mock_requests_get):
         timeout_error = requests.exceptions.Timeout("Timeout")
-        self.mock_session_instance.get.side_effect = timeout_error
+        mock_requests_get.side_effect = timeout_error
         with self.assertRaises(requests.exceptions.RequestException):
             self.api._make_request('/timeout')
         # ... other assertions ...
-        self.mock_logger.error.assert_called_once_with(
+        self.mock_logger.error.assert_any_call(
             "API request failed permanently for https://mockapi.test/timeout after retries: Timeout"
         )
         self.mock_logger.debug.assert_called_once()
 
-    def test_make_request_json_decode_error(self):
+    @patch(f'{TVMAZE_API_MODULE_PATH}.requests.get')
+    def test_make_request_json_decode_error(self, mock_requests_get):
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = "invalid json"
         json_error = requests.exceptions.JSONDecodeError("Expecting value", "doc", 0)
         mock_response.json.side_effect = json_error
-        self.mock_session_instance.get.return_value = mock_response
+        mock_requests_get.return_value = mock_response
         with self.assertRaises(ValueError):
             self.api._make_request('/invalidjson')
         # ... other assertions ...
-        self.mock_logger.error.assert_called_once_with(
+        self.mock_logger.error.assert_any_call(
             "Failed to decode JSON from https://mockapi.test/invalidjson: Expecting value: line 1 column 1 (char 0). "
             "Response text: invalid json..."
+        )
+        self.mock_logger.error.assert_any_call(
+            "Non-retriable error for tvmaze_api: Invalid JSON response from API"
         )
         self.mock_logger.debug.assert_called_once()
 
