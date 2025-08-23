@@ -1,7 +1,7 @@
 """Enhanced retry handling for TVMaze API calls."""
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional, Callable, Any, Type
 from functools import wraps
 from collections import defaultdict
@@ -16,7 +16,8 @@ class TVMazeRetryHandler:
     retry logic and TVMaze-specific error handling.
     """
     
-    def __init__(self, 
+    def __init__(self,
+
                  max_attempts: int = 3,
                  base_delay_seconds: float = 1.0,
                  max_delay_seconds: float = 60.0,
@@ -122,7 +123,7 @@ class TVMazeRetryHandler:
         """
         backoff_state = self.backoff_state[operation_id]
         backoff_state['consecutive_failures'] += 1
-        backoff_state['last_failure_time'] = datetime.utcnow()
+        backoff_state['last_failure_time'] = datetime.now(UTC)
         
         is_rate_limit = self.is_rate_limit_error(exception)
         backoff_seconds = self.calculate_backoff_delay(
@@ -130,7 +131,7 @@ class TVMazeRetryHandler:
             is_rate_limit
         )
         
-        backoff_state['backoff_until'] = datetime.utcnow() + timedelta(seconds=backoff_seconds)
+        backoff_state['backoff_until'] = datetime.now(UTC) + timedelta(seconds=backoff_seconds)
         
         self.logger.warning(
             f"TVMaze API failure #{backoff_state['consecutive_failures']} for {operation_id}. "
@@ -157,8 +158,8 @@ class TVMazeRetryHandler:
             operation_id: Identifier for the operation type
         """
         backoff_state = self.backoff_state[operation_id]
-        if backoff_state['backoff_until'] and datetime.utcnow() < backoff_state['backoff_until']:
-            wait_time = (backoff_state['backoff_until'] - datetime.utcnow()).total_seconds()
+        if backoff_state['backoff_until'] and datetime.now(UTC) < backoff_state['backoff_until']:
+            wait_time = (backoff_state['backoff_until'] - datetime.now(UTC)).total_seconds()
             self.logger.info(f"In backoff period for {operation_id}. Waiting {wait_time:.1f} seconds.")
             time.sleep(wait_time)
     
@@ -233,7 +234,7 @@ class TVMazeRetryHandler:
             Dictionary with retry status information
         """
         backoff_state = self.backoff_state[operation_id]
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         return {
             'operation_id': operation_id,
